@@ -26,6 +26,7 @@
 		D08C25434BC509A8ADB6748B /* ChatInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF46119B14910D286282D5A1 /* ChatInputView.swift */; };
 		E59D704B98F1C0034018CC0F /* ChatMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D63D98DEBA5A95161DB4CB /* ChatMessageView.swift */; };
 		EE9F117C064C3AE9B7EBE681 /* CahierApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D89B75741D78547F2269F5E /* CahierApp.swift */; };
+		EEB2FA07F03828418CC40475 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 404510A9C5946A17588453F4 /* MarkdownUI */; };
 		F89C21AF3486494FB082CC0E /* Conversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0828BC5DF932C2A07026980 /* Conversation.swift */; };
 		FD97588CB9BB05FDB8E405A7 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = A77DF9151D4E23426D55BA2D /* Message.swift */; };
 /* End PBXBuildFile section */
@@ -55,6 +56,17 @@
 		FF46119B14910D286282D5A1 /* ChatInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInputView.swift; sourceTree = "<group>"; };
 		FF882ECD940E9A386B2FB2F1 /* TranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		710C4320DB1D558E2F670F70 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EEB2FA07F03828418CC40475 /* MarkdownUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0551F5A38FDCA72839A7198D /* Resources */ = {
@@ -191,6 +203,7 @@
 			buildPhases = (
 				5094FD35971DBBF07FF323FE /* Sources */,
 				1DD3BA48086DBB0EA8A77A34 /* Resources */,
+				710C4320DB1D558E2F670F70 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -198,6 +211,7 @@
 			);
 			name = Cahier;
 			packageProductDependencies = (
+				404510A9C5946A17588453F4 /* MarkdownUI */,
 			);
 			productName = Cahier;
 			productReference = 6879595A1A53F94557C9BC4A /* Cahier.app */;
@@ -228,6 +242,9 @@
 			);
 			mainGroup = DCE9C5BD065CD18F53D4135C;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				40ACECE5872CE48C22D8589D /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
@@ -472,6 +489,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		40ACECE5872CE48C22D8589D /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		404510A9C5946A17588453F4 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 40ACECE5872CE48C22D8589D /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 14F7671A5F42583A4333688D /* Project object */;
 }

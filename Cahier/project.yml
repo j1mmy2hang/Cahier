@@ -6,10 +6,17 @@ options:
   xcodeVersion: "26.3"
   minimumXcodeGenVersion: "2.0"
 
+packages:
+  MarkdownUI:
+    url: https://github.com/gonzalezreal/swift-markdown-ui
+    from: 2.4.0
+
 targets:
   Cahier:
     type: application
     platform: macOS
+    dependencies:
+      - package: MarkdownUI
     sources:
       - Cahier
     settings:

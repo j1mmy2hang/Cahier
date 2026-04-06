@@ -1,4 +1,5 @@
 import SwiftUI
+import MarkdownUI
 
 struct ChatMessageView: View {
     let message: Message
@@ -10,8 +11,7 @@ struct ChatMessageView: View {
             }
 
             VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 2) {
-                Text(message.content)
-                    .font(.body)
+                Markdown(message.content)
                     .textSelection(.enabled)
                     .padding(10)
                     .background(backgroundColor, in: RoundedRectangle(cornerRadius: 10))
