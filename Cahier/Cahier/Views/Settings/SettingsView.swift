@@ -1,10 +1,18 @@
 import SwiftUI
 
+enum HoverLookupMode: String, CaseIterable, Identifiable {
+    case automatic = "Automatic (Hover)"
+    case manual = "Manual (Hold ⌘ Key)"
+    var id: String { self.rawValue }
+}
+
+
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
     @AppStorage("openrouter-api-key") private var apiKey: String = ""
     @State private var folderPath: String = "No folder selected"
     @State private var showSaved = false
+    @AppStorage("hoverLookupMode") private var hoverMode: HoverLookupMode = .automatic
 
     var body: some View {
         Form {
@@ -19,6 +27,15 @@ struct SettingsView: View {
                         pickFolder()
                     }
                 }
+            }
+
+            Section("Reading Experience") {
+                Picker("Dictionary Lookup", selection: $hoverMode) {
+                    ForEach(HoverLookupMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.radioGroup)
             }
 
             Section("OpenRouter API Key") {
@@ -40,7 +57,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 220)
+        .frame(width: 450, height: 320)
         .onAppear {
             folderPath = appState.notebookFolderURL?.path(percentEncoded: false) ?? "No folder selected"
         }

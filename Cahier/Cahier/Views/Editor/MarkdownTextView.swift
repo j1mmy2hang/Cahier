@@ -45,6 +45,9 @@ struct MarkdownTextView: NSViewRepresentable {
         textView.exitHandler = { event in
             coordinator.handleMouseExited(with: event)
         }
+        textView.flagsChangedHandler = { event in
+            coordinator.handleFlagsChanged(with: event)
+        }
 
         scrollView.documentView = textView
         context.coordinator.textView = textView
@@ -79,11 +82,16 @@ struct MarkdownTextView: NSViewRepresentable {
 final class HoverTextView: NSTextView {
     var hoverHandler: ((NSEvent) -> Void)?
     var exitHandler: ((NSEvent) -> Void)?
+    var flagsChangedHandler: ((NSEvent) -> Void)?
+
+    private var hoverTrackingArea: NSTrackingArea?
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
-        for area in trackingAreas {
-            removeTrackingArea(area)
+
+        // Only remove OUR custom tracking area, never touch system ones
+        if let existing = hoverTrackingArea {
+            removeTrackingArea(existing)
         }
         let area = NSTrackingArea(
             rect: bounds,
@@ -92,14 +100,22 @@ final class HoverTextView: NSTextView {
             userInfo: nil
         )
         addTrackingArea(area)
+        hoverTrackingArea = area
     }
 
     override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event) // Preserve native I-beam cursor behavior
         hoverHandler?(event)
     }
 
     override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event) // Preserve native cursor restore
         exitHandler?(event)
+    }
+
+    override func flagsChanged(with event: NSEvent) {
+        super.flagsChanged(with: event)
+        flagsChangedHandler?(event)
     }
 }
 
@@ -113,7 +129,7 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
 
     private let hoverDebouncer = Debouncer(delay: 0.4)
     private var lastHoveredWordRange: NSRange?
-    private var translationPopover: NSPopover?
+    private var translationPanel: NSPanel?
     private var selectionPanel: NSPanel?
 
     init(parent: MarkdownTextView) {
@@ -134,6 +150,7 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
     func textDidChange(_ notification: Notification) {
         guard let textView else { return }
         isEditing = true
+        dismissTranslationPanel()
         parent.onTextChange(textView.string)
         applyHighlighting()
         DispatchQueue.main.async { [weak self] in
@@ -145,6 +162,9 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
 
     func textViewDidChangeSelection(_ notification: Notification) {
         guard let textView else { return }
+        
+        dismissTranslationPanel() // Hide translation when user selects text
+        
         let range = textView.selectedRange()
 
         if range.length > 0 {
@@ -173,19 +193,61 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
 
     func handleMouseMoved(with event: NSEvent) {
         guard let textView else { return }
+        
         let point = textView.convert(event.locationInWindow, from: nil)
+        
+        let hoverModeRaw = UserDefaults.standard.string(forKey: "hoverLookupMode") ?? HoverLookupMode.automatic.rawValue
+        let isManualMode = hoverModeRaw == HoverLookupMode.manual.rawValue
+        let isCommandPressed = event.modifierFlags.contains(.command)
+
+        if isManualMode && !isCommandPressed {
+            lastHoveredWordRange = nil
+            dismissTranslationPanel()
+            parent.onHoverWord(nil, nil)
+            return
+        }
+
+        evaluateHover(at: point, isCommandPressed: isCommandPressed, isManualMode: isManualMode)
+    }
+
+    func handleFlagsChanged(with event: NSEvent) {
+        guard let textView else { return }
+        
+        let hoverModeRaw = UserDefaults.standard.string(forKey: "hoverLookupMode") ?? HoverLookupMode.automatic.rawValue
+        let isManualMode = hoverModeRaw == HoverLookupMode.manual.rawValue
+        guard isManualMode else { return }
+        
+        let isCommandPressed = event.modifierFlags.contains(.command)
+        
+        if isCommandPressed {
+            guard let window = textView.window else { return }
+            let windowPoint = window.mouseLocationOutsideOfEventStream
+            let localPoint = textView.convert(windowPoint, from: nil)
+            
+            if textView.bounds.contains(localPoint) {
+                evaluateHover(at: localPoint, isCommandPressed: true, isManualMode: true)
+            }
+        } else {
+            lastHoveredWordRange = nil
+            dismissTranslationPanel()
+            parent.onHoverWord(nil, nil)
+        }
+    }
+
+    private func evaluateHover(at point: NSPoint, isCommandPressed: Bool, isManualMode: Bool) {
+        guard let textView else { return }
         let charIndex = textView.characterIndexForInsertion(at: point)
 
         let nsString = textView.string as NSString
         guard charIndex >= 0, charIndex < nsString.length else {
-            dismissTranslationPopover()
+            dismissTranslationPanel()
             parent.onHoverWord(nil, nil)
             return
         }
 
         let wordRange = nsString.wordRange(at: charIndex)
         guard wordRange.length > 0 else {
-            dismissTranslationPopover()
+            dismissTranslationPanel()
             parent.onHoverWord(nil, nil)
             return
         }
@@ -198,12 +260,12 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
             .trimmingCharacters(in: .punctuationCharacters.union(.whitespaces))
 
         guard !word.isEmpty, word.count > 1 else {
-            dismissTranslationPopover()
+            dismissTranslationPanel()
             parent.onHoverWord(nil, nil)
             return
         }
 
-        hoverDebouncer.debounce { [weak self] in
+        let triggerTranslation = { [weak self] in
             guard let self else { return }
             self.parent.onHoverWord(word, point)
 
@@ -211,23 +273,35 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
                 guard let self else { return }
                 let result = await self.parent.translationService.translateWord(word)
                 guard let result else { return }
-                self.showTranslationPopover(result: result, wordRange: wordRange)
+                self.showTranslationPanel(result: result, wordRange: wordRange)
+            }
+        }
+
+        if isManualMode && isCommandPressed {
+            // Instant, no debounce!
+            triggerTranslation()
+        } else {
+            // Automatic mode, use debounce
+            hoverDebouncer.debounce {
+                triggerTranslation()
             }
         }
     }
 
     func handleMouseExited(with event: NSEvent) {
         lastHoveredWordRange = nil
+        dismissTranslationPanel()
         parent.onHoverWord(nil, nil)
     }
 
     // MARK: - Translation Popover
 
-    private func showTranslationPopover(result: TranslationResult, wordRange: NSRange) {
-        guard let textView, let layoutManager = textView.layoutManager,
+    private func showTranslationPanel(result: TranslationResult, wordRange: NSRange) {
+        guard let textView, let window = textView.window,
+              let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer else { return }
 
-        dismissTranslationPopover()
+        dismissTranslationPanel()
 
         let glyphRange = layoutManager.glyphRange(forCharacterRange: wordRange, actualCharacterRange: nil)
         let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
@@ -238,19 +312,60 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
             height: max(rect.height, 1)
         )
 
-        let popover = NSPopover()
-        popover.behavior = .transient
-        popover.animates = true
+        let panel = NSPanel(
+            contentRect: .zero,
+            styleMask: [.nonactivatingPanel, .fullSizeContentView],
+            backing: .buffered,
+            defer: true
+        )
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = true
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.level = .floating
+        panel.hasShadow = true
+        panel.ignoresMouseEvents = true // Passes mouse events through! Solves cursor clash.
 
-        let content = TranslationPopoverContent(result: result)
-        popover.contentViewController = NSHostingController(rootView: content)
-        popover.show(relativeTo: viewRect, of: textView, preferredEdge: .maxY)
-        translationPopover = popover
+        let content = TranslationBubbleView(result: result)
+        let hostingView = NSHostingView(rootView: content)
+        panel.contentView = hostingView
+        
+        let size = hostingView.fittingSize
+        panel.setContentSize(size)
+
+        let viewPoint = NSPoint(x: viewRect.midX, y: viewRect.minY)
+        let windowPoint = textView.convert(viewPoint, to: nil)
+        let screenPoint = window.convertPoint(toScreen: windowPoint)
+
+        var panelX = screenPoint.x - (size.width / 2.0)
+        var panelY = screenPoint.y + 6 // Slightly above the word
+        
+        // Boundaries check
+        if let screenFrame = window.screen?.visibleFrame {
+            if panelX < screenFrame.minX + 16 {
+                panelX = screenFrame.minX + 16
+            } else if panelX + size.width > screenFrame.maxX - 16 {
+                panelX = screenFrame.maxX - 16 - size.width
+            }
+            
+            // If the popup goes above the screen, show it below the word
+            if panelY + size.height > screenFrame.maxY - 16 {
+                let bottomViewPoint = NSPoint(x: viewRect.midX, y: viewRect.maxY)
+                let bottomWindowPoint = textView.convert(bottomViewPoint, to: nil)
+                let bottomScreenPoint = window.convertPoint(toScreen: bottomWindowPoint)
+                // Position below the text
+                panelY = bottomScreenPoint.y - size.height - 6
+            }
+        }
+
+        panel.setFrameOrigin(NSPoint(x: panelX, y: panelY))
+        panel.orderFront(nil)
+        translationPanel = panel
     }
 
-    private func dismissTranslationPopover() {
-        translationPopover?.close()
-        translationPopover = nil
+    private func dismissTranslationPanel() {
+        translationPanel?.orderOut(nil)
+        translationPanel = nil
     }
 
     // MARK: - Selection Panel (Speak / Learn)
@@ -375,29 +490,39 @@ extension NSString {
 
 // MARK: - Popover Content Views
 
-struct TranslationPopoverContent: View {
+struct TranslationBubbleView: View {
     let result: TranslationResult
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             if result.lemma != result.originalWord {
                 HStack(spacing: 4) {
                     Text(result.originalWord)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                     Image(systemName: "arrow.right")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.tertiary)
                     Text(result.lemma)
-                        .fontWeight(.medium)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .font(.caption)
             }
             Text(result.translation)
                 .font(.body)
                 .fontWeight(.medium)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(nil)
         }
-        .padding(10)
-        .frame(minWidth: 80)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(minWidth: 80, maxWidth: 360, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
     }
 }
 

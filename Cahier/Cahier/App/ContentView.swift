@@ -16,8 +16,6 @@ struct GlassButtonModifier: ViewModifier {
 struct ContentView: View {
     @Environment(AppState.self) private var appState
     @State private var translationConfig: TranslationSession.Configuration?
-    @State private var chatWidth: CGFloat = 320
-    @GestureState private var isDragging = false
 
     var body: some View {
         Group {
@@ -39,44 +37,17 @@ struct ContentView: View {
     }
 
     private var mainView: some View {
-        NavigationSplitView {
+        @Bindable var bindableAppState = appState
+        
+        return NavigationSplitView {
             SidebarView()
         } detail: {
-            HStack(spacing: 0) {
-                EditorView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                if appState.showChatPanel {
-                    ZStack(alignment: .leading) {
-                        Divider()
-                            .frame(width: 1)
-                        
-                        // Transparent draggable area for resize
-                        Color.clear
-                            .frame(width: 5)
-                            .contentShape(Rectangle())
-                            .onHover { inside in
-                                if inside { NSCursor.resizeLeftRight.push() }
-                                else { NSCursor.pop() }
-                            }
-                            .gesture(
-                                DragGesture(minimumDistance: 0)
-                                    .updating($isDragging) { _, state, _ in
-                                        state = true
-                                    }
-                                    .onChanged { value in
-                                        let newWidth = chatWidth - value.translation.width
-                                        chatWidth = max(250, min(newWidth, 600))
-                                    }
-                            )
-                    }
-                    .zIndex(1)
-
+            EditorView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .inspector(isPresented: $bindableAppState.showChatPanel) {
                     ChatPanelView()
-                        .frame(width: chatWidth)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                        .inspectorColumnWidth(min: 250, ideal: 320, max: 600)
                 }
-            }
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {
