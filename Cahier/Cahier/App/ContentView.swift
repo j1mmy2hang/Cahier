@@ -41,14 +41,19 @@ struct ContentView: View {
         
         return NavigationSplitView {
             SidebarView()
-                .navigationSplitViewColumnWidth(min: 200, ideal: 250)
+                // Cap the sidebar so it can't expand and steal toolbar space
+                .navigationSplitViewColumnWidth(min: 180, ideal: 240, max: 300)
         } detail: {
+            // Inspector must be attached HERE (on the detail view), not on the
+            // NavigationSplitView itself. Attaching it to the split view causes
+            // the layout engine to mis-calculate available toolbar width, which
+            // squishes or hides toolbar items when the inspector is open.
             EditorView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .inspector(isPresented: $bindableAppState.showChatPanel) {
-            ChatPanelView()
-                .inspectorColumnWidth(min: 250, ideal: 320, max: 600)
+                .inspector(isPresented: $bindableAppState.showChatPanel) {
+                    ChatPanelView()
+                        .inspectorColumnWidth(min: 260, ideal: 320, max: 500)
+                }
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {

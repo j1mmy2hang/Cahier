@@ -9,7 +9,8 @@ struct CahierApp: App {
         WindowGroup {
             ContentView()
                 .environment(appState)
-                .frame(minWidth: 900, minHeight: 600)
+                // 960 = sidebar(min 180) + inspector(min 260) + editor + toolbar breathing room
+                .frame(minWidth: 960, minHeight: 600)
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
                     appState.noteStore.flushPendingSave()
                 }
