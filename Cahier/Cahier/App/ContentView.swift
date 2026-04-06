@@ -36,18 +36,25 @@ struct ContentView: View {
         }
     }
 
+    private let chatPanelWidth: CGFloat = 320
+
     private var mainView: some View {
-        @Bindable var bindableAppState = appState
-        
-        return NavigationSplitView {
+        NavigationSplitView {
             SidebarView()
+                .navigationSplitViewColumnWidth(min: 200, ideal: 250)
         } detail: {
-            EditorView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .inspector(isPresented: $bindableAppState.showChatPanel) {
+            HStack(spacing: 0) {
+                EditorView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // Custom animated trailing panel
+                if appState.showChatPanel {
+                    Divider()
                     ChatPanelView()
-                        .inspectorColumnWidth(min: 250, ideal: 320, max: 600)
+                        .frame(width: chatPanelWidth)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
+            }
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {
@@ -60,7 +67,7 @@ struct ContentView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
+                    withAnimation(.smooth(duration: 0.3)) {
                         appState.showChatPanel.toggle()
                     }
                 } label: {
