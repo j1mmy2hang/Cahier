@@ -3,41 +3,57 @@ import SwiftUI
 struct ChatPanelView: View {
     @Environment(AppState.self) private var appState
 
+    /// Tracks whether the bottom of the chat is visible in the viewport.
+    /// Driven by onAppear/onDisappear of an invisible anchor at the end of the list.
+    /// When true, streaming content auto-scrolls; when the user scrolls up, it turns
+    /// false and we stop pulling them back down.
+    @State private var isNearBottom = true
+
+
     var body: some View {
         VStack(spacing: 0) {
-            // Top bar with clear button — always visible
-            HStack {
-                Button(action: { appState.conversation.clear() }) {
-                    Label("Clear Chat", systemImage: "arrow.counterclockwise")
-                }
-                .buttonStyle(.borderless)
-                .help("Clear conversation")
-                .disabled(appState.conversation.messages.isEmpty)
-
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-
             if appState.conversation.messages.isEmpty {
                 chatEmptyState
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 12) {
+                        LazyVStack(alignment: .leading, spacing: 24) {
                             ForEach(appState.conversation.messages) { message in
-                                ChatMessageView(message: message)
-                                    .id(message.id)
+                                if message.role != .assistant || !message.content.isEmpty {
+                                    ChatMessageView(message: message)
+                                        .id(message.id)
+                                }
                             }
                         }
-                        .padding(12)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 16)
+
+                        // Anchor sits outside the LazyVStack so it doesn't inherit
+                        // the 16pt inter-item spacing or cause layout flicker.
+                        Color.clear
+                            .frame(height: 0)
+                            .id("bottom")
+                            .onAppear { isNearBottom = true }
+                            .onDisappear { isNearBottom = false }
                     }
                     .onChange(of: appState.conversation.messages.count) {
-                        if let last = appState.conversation.messages.last {
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                proxy.scrollTo(last.id, anchor: .bottom)
-                            }
+                        // When a new user message is submitted, scroll it to the top of the viewport
+                        // and re-enable auto-scroll so streaming follows.
+                        let messages = appState.conversation.messages
+                        guard let lastUser = messages.last(where: { $0.role == .user }),
+                              let idx = messages.lastIndex(where: { $0.id == lastUser.id }),
+                              idx >= messages.count - 2 else { return }
+
+                        isNearBottom = true
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                            proxy.scrollTo(lastUser.id, anchor: .top)
+                        }
+                    }
+                    .onChange(of: appState.conversation.messages.last?.content) {
+                        // During streaming, follow the bottom — but only if the user hasn't scrolled away.
+                        guard isNearBottom, appState.conversation.isStreaming else { return }
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            proxy.scrollTo("bottom", anchor: .bottom)
                         }
                     }
                 }

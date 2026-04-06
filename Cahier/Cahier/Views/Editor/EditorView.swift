@@ -8,7 +8,12 @@ struct EditorView: View {
             if let note = appState.selectedNote {
                 VStack(spacing: 0) {
                     NoteTitleEditor(note: note)
-                    
+
+                    Divider()
+                        .padding(.horizontal, 40)
+                        .padding(.bottom, 18)
+                        .opacity(0.5)
+
                     MarkdownTextView(
                         note: note,
                         onTextChange: { newText in
@@ -34,6 +39,8 @@ struct EditorView: View {
                     // Force a completely fresh NSTextView when switching notes
                     .id(note.fileURL)
                 }
+                .frame(maxWidth: 800)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "doc.text")
@@ -57,11 +64,11 @@ struct NoteTitleEditor: View {
     var body: some View {
         TextField("Note Title", text: $localTitle)
             .textFieldStyle(.plain)
-            .font(.system(size: 24, weight: .bold))
+            .font(.system(size: 26, weight: .semibold, design: .serif))
             .focused($isFocused)
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 40)
+            .padding(.top, 40)
+            .padding(.bottom, 10)
             .onChange(of: note.title) { _, newTitle in
                 if !isFocused {
                     localTitle = newTitle

@@ -24,6 +24,7 @@ struct MarkdownTextView: NSViewRepresentable {
         textView.autoresizingMask = [.width]
         textView.textContainer?.containerSize = NSSize(width: scrollView.contentSize.width, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.lineFragmentPadding = 0
 
         textView.delegate = context.coordinator
         textView.isRichText = false
@@ -38,7 +39,7 @@ struct MarkdownTextView: NSViewRepresentable {
         textView.insertionPointColor = .labelColor
         textView.backgroundColor = .clear
         textView.drawsBackground = false
-        textView.textContainerInset = NSSize(width: 16, height: 16)
+        textView.textContainerInset = NSSize(width: 40, height: 8)
 
         let coordinator = context.coordinator
         textView.hoverHandler = { event in

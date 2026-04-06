@@ -2,8 +2,23 @@ import AppKit
 
 @MainActor
 enum MarkdownHighlighter {
-    static let defaultFont = NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
-    static let boldFont = NSFont.monospacedSystemFont(ofSize: 14, weight: .bold)
+    static let defaultFont: NSFont = {
+        NSFont(name: "iAWriterQuattroS-Regular", size: 16)
+            ?? NSFont(name: "iA Writer Quattro S", size: 16)
+            ?? NSFont.systemFont(ofSize: 16, weight: .regular)
+    }()
+
+    static let boldFont: NSFont = {
+        NSFont(name: "iAWriterQuattroS-Bold", size: 16)
+            ?? NSFont(name: "iA Writer Quattro S", size: 16)
+            ?? NSFont.systemFont(ofSize: 16, weight: .bold)
+    }()
+
+    static let defaultParagraphStyle: NSParagraphStyle = {
+        let style = NSMutableParagraphStyle()
+        style.lineSpacing = 5
+        return style
+    }()
 
     static func apply(to textStorage: NSTextStorage) {
         let fullRange = NSRange(location: 0, length: textStorage.length)
@@ -15,6 +30,7 @@ enum MarkdownHighlighter {
         textStorage.setAttributes([
             .font: defaultFont,
             .foregroundColor: NSColor.textColor,
+            .paragraphStyle: defaultParagraphStyle,
         ], range: fullRange)
 
         // Headers

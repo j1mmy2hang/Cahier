@@ -3,7 +3,12 @@ import SwiftUI
 private struct GlassInputModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *) {
-            content.glassEffect(.regular, in: .rect(cornerRadius: 16))
+            content
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .strokeBorder(Color(.separatorColor).opacity(0.4), lineWidth: 1)
+                )
         } else {
             content
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
@@ -23,7 +28,7 @@ struct ChatInputView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .bottom, spacing: 6) {
-                TextField("Ask a question…", text: $inputText, axis: .vertical)
+                TextField("Learn...", text: $inputText, axis: .vertical)
                     .textFieldStyle(.plain)
                     .lineLimit(1...5)
                     .focused($isFocused)
@@ -45,8 +50,9 @@ struct ChatInputView: View {
             .padding(.vertical, 8)
             .modifier(GlassInputModifier())
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 28)
+        .padding(.top, 4)
+        .padding(.bottom, 16)
     }
 
     private var canSend: Bool {
