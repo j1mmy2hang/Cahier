@@ -16,6 +16,7 @@ struct MarkdownTextView: NSViewRepresentable {
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
 
         let textView = HoverTextView()
         textView.isVerticallyResizable = true
@@ -35,7 +36,8 @@ struct MarkdownTextView: NSViewRepresentable {
         textView.font = MarkdownHighlighter.defaultFont
         textView.textColor = .textColor
         textView.insertionPointColor = .labelColor
-        textView.backgroundColor = .textBackgroundColor
+        textView.backgroundColor = .clear
+        textView.drawsBackground = false
         textView.textContainerInset = NSSize(width: 16, height: 16)
 
         let coordinator = context.coordinator

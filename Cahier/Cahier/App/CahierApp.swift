@@ -15,6 +15,7 @@ struct CahierApp: App {
                 }
         }
         .windowStyle(.titleBar)
+        .windowResizability(.contentMinSize)
         .defaultSize(width: 1200, height: 750)
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .inactive || newPhase == .background {

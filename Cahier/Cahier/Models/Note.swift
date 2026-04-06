@@ -2,7 +2,7 @@ import Foundation
 
 @Observable
 final class Note: Identifiable, Hashable {
-    let fileURL: URL
+    var fileURL: URL
     var title: String
     var content: String
     var creationDate: Date

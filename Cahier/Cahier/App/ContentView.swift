@@ -36,25 +36,19 @@ struct ContentView: View {
         }
     }
 
-    private let chatPanelWidth: CGFloat = 320
-
     private var mainView: some View {
-        NavigationSplitView {
+        @Bindable var bindableAppState = appState
+        
+        return NavigationSplitView {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 200, ideal: 250)
         } detail: {
-            HStack(spacing: 0) {
-                EditorView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                // Custom animated trailing panel
-                if appState.showChatPanel {
-                    Divider()
-                    ChatPanelView()
-                        .frame(width: chatPanelWidth)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
-                }
-            }
+            EditorView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .inspector(isPresented: $bindableAppState.showChatPanel) {
+            ChatPanelView()
+                .inspectorColumnWidth(min: 250, ideal: 320, max: 600)
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {
@@ -67,9 +61,7 @@ struct ContentView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    withAnimation(.smooth(duration: 0.3)) {
-                        appState.showChatPanel.toggle()
-                    }
+                    appState.showChatPanel.toggle()
                 } label: {
                     Label("Toggle AI Tutor", systemImage: "sidebar.trailing")
                 }
@@ -125,4 +117,6 @@ struct ContentView: View {
             appState.noteStore.setFolder(url, appState: appState)
         }
     }
+
+
 }

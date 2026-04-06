@@ -27,10 +27,10 @@ final class NoteStore {
             .replacingOccurrences(of: ":", with: ".")
         let fileURL = folderURL.appendingPathComponent("\(sanitized).md")
 
-        let content = "# \(title)\n\n"
-
+        let content = ""
+        
         // Set the note content
-
+        
         do {
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
         } catch {
@@ -70,6 +70,30 @@ final class NoteStore {
         appState.notes.removeAll { $0 == note }
 
         try? FileManager.default.removeItem(at: note.fileURL)
+    }
+
+    func renameNote(_ note: Note, newTitle: String, appState: AppState) -> Bool {
+        guard let folderURL = folderURL else { return false }
+        
+        let sanitized = newTitle
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ":", with: ".")
+        
+        let newURL = folderURL.appendingPathComponent("\(sanitized).md")
+        
+        guard newURL != note.fileURL else { return true }
+        guard !FileManager.default.fileExists(atPath: newURL.path) else { return false }
+        
+        do {
+            try FileManager.default.moveItem(at: note.fileURL, to: newURL)
+            note.fileURL = newURL
+            note.title = newTitle
+            // No need to reload, handleDirectoryChange and Note reference handles the UI
+            return true
+        } catch {
+            print("[NoteStore] renameNote failed: \(error)")
+            return false
+        }
     }
 
     func saveNote(_ note: Note) {
