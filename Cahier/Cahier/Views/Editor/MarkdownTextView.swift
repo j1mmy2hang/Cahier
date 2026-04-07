@@ -91,20 +91,23 @@ final class HoverTextView: NSTextView {
     private var hoverTrackingArea: NSTrackingArea?
     private var isAdjustingSize = false
 
-    /// Make the text view taller than its content so the last line can scroll
-    /// to the vertical centre of the visible area.  Because this extra space is
-    /// part of the view's own frame, the scrollbar covers the full range.
+    /// Inflate the text view frame so the last line can scroll to mid-screen.
+    /// The extra space is part of the view's own frame, so the scrollbar
+    /// covers the full range and reaches the window bottom.
     override func setFrameSize(_ newSize: NSSize) {
-        if !isAdjustingSize, let scrollView = enclosingScrollView, let container = textContainer {
-            isAdjustingSize = true
-            let contentHeight = layoutManager!.usedRect(for: container).height + textContainerInset.height * 2
-            let visibleHeight = scrollView.contentSize.height
-            let desiredHeight = max(contentHeight + visibleHeight * 0.5, newSize.height)
-            super.setFrameSize(NSSize(width: newSize.width, height: desiredHeight))
-            isAdjustingSize = false
-        } else {
+        guard !isAdjustingSize,
+              let scrollView = enclosingScrollView,
+              let container = textContainer,
+              let lm = layoutManager else {
             super.setFrameSize(newSize)
+            return
         }
+        isAdjustingSize = true
+        let contentHeight = lm.usedRect(for: container).height + textContainerInset.height * 2
+        let visibleHeight = scrollView.contentSize.height
+        let desiredHeight = max(contentHeight + visibleHeight * 0.5, newSize.height)
+        super.setFrameSize(NSSize(width: newSize.width, height: desiredHeight))
+        isAdjustingSize = false
     }
 
     override func updateTrackingAreas() {
