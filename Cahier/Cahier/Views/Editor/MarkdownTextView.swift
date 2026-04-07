@@ -58,12 +58,6 @@ struct MarkdownTextView: NSViewRepresentable {
         textView.string = note.content
         context.coordinator.applyHighlighting()
 
-        // Allow last line to scroll up to the middle of the visible area
-        DispatchQueue.main.async {
-            let visibleHeight = scrollView.contentSize.height
-            scrollView.contentInsets.bottom = max(visibleHeight * 0.5, 200)
-        }
-
         return scrollView
     }
 
@@ -80,13 +74,6 @@ struct MarkdownTextView: NSViewRepresentable {
             textView.selectedRanges = selectedRanges
             context.coordinator.applyHighlighting()
         }
-
-        // Keep bottom inset in sync with view size (e.g. after window resize)
-        let visibleHeight = scrollView.contentSize.height
-        let newInset = max(visibleHeight * 0.5, 200)
-        if abs(scrollView.contentInsets.bottom - newInset) > 1 {
-            scrollView.contentInsets.bottom = newInset
-        }
     }
 
     func makeCoordinator() -> MarkdownTextViewCoordinator {
@@ -102,6 +89,23 @@ final class HoverTextView: NSTextView {
     var flagsChangedHandler: ((NSEvent) -> Void)?
 
     private var hoverTrackingArea: NSTrackingArea?
+    private var isAdjustingSize = false
+
+    /// Make the text view taller than its content so the last line can scroll
+    /// to the vertical centre of the visible area.  Because this extra space is
+    /// part of the view's own frame, the scrollbar covers the full range.
+    override func setFrameSize(_ newSize: NSSize) {
+        if !isAdjustingSize, let scrollView = enclosingScrollView, let container = textContainer {
+            isAdjustingSize = true
+            let contentHeight = layoutManager!.usedRect(for: container).height + textContainerInset.height * 2
+            let visibleHeight = scrollView.contentSize.height
+            let desiredHeight = max(contentHeight + visibleHeight * 0.5, newSize.height)
+            super.setFrameSize(NSSize(width: newSize.width, height: desiredHeight))
+            isAdjustingSize = false
+        } else {
+            super.setFrameSize(newSize)
+        }
+    }
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()

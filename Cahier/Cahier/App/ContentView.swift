@@ -38,7 +38,7 @@ struct ContentView: View {
 
     private var mainView: some View {
         @Bindable var bindableAppState = appState
-        
+
         return NavigationSplitView {
             SidebarView()
                 // Cap the sidebar so it can't expand and steal toolbar space

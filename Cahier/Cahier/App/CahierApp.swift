@@ -15,6 +15,19 @@ struct CahierApp: App {
                     appState.noteStore.flushPendingSave()
                 }
         }
+        .commands {
+            CommandGroup(after: .sidebar) {
+                Button("Toggle Sidebar") {
+                    NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
+                }
+                .keyboardShortcut("s", modifiers: .command)
+
+                Button(appState.showChatPanel ? "Hide Right Panel" : "Show Right Panel") {
+                    appState.showChatPanel.toggle()
+                }
+                .keyboardShortcut("e", modifiers: .command)
+            }
+        }
         .windowStyle(.titleBar)
         .windowResizability(.contentMinSize)
         .defaultSize(width: 1200, height: 750)
