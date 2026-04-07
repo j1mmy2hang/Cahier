@@ -54,8 +54,15 @@ struct MarkdownTextView: NSViewRepresentable {
 
         scrollView.documentView = textView
         context.coordinator.textView = textView
+        context.coordinator.scrollView = scrollView
         textView.string = note.content
         context.coordinator.applyHighlighting()
+
+        // Allow last line to scroll up to the middle of the visible area
+        DispatchQueue.main.async {
+            let visibleHeight = scrollView.contentSize.height
+            scrollView.contentInsets.bottom = max(visibleHeight * 0.5, 200)
+        }
 
         return scrollView
     }
@@ -72,6 +79,13 @@ struct MarkdownTextView: NSViewRepresentable {
             textView.string = note.content
             textView.selectedRanges = selectedRanges
             context.coordinator.applyHighlighting()
+        }
+
+        // Keep bottom inset in sync with view size (e.g. after window resize)
+        let visibleHeight = scrollView.contentSize.height
+        let newInset = max(visibleHeight * 0.5, 200)
+        if abs(scrollView.contentInsets.bottom - newInset) > 1 {
+            scrollView.contentInsets.bottom = newInset
         }
     }
 
@@ -128,6 +142,7 @@ final class HoverTextView: NSTextView {
 final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
     var parent: MarkdownTextView
     weak var textView: NSTextView?
+    weak var scrollView: NSScrollView?
     var isEditing = false
 
     private let hoverDebouncer = Debouncer(delay: 0.4)
@@ -511,7 +526,7 @@ struct TranslationBubbleView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Text(result.translation)
+            Text(result.translation.lowercased())
                 .font(.body)
                 .fontWeight(.medium)
                 .foregroundStyle(.primary)
@@ -520,7 +535,7 @@ struct TranslationBubbleView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .frame(minWidth: 80, maxWidth: 360, alignment: .leading)
+        .frame(maxWidth: 360, alignment: .leading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
