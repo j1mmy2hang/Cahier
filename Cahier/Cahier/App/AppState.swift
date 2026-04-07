@@ -48,6 +48,10 @@ final class AppState {
         }
     }
 
+    func reloadTTSService() {
+        ttsService.reloadSettings()
+    }
+
     // MARK: - Security-Scoped Bookmark
 
     private func saveBookmark(for url: URL) {
