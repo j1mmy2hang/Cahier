@@ -7,7 +7,7 @@ final class AIService: Sendable {
     static let learnSystemPrompt = """
         You are a French language tutor. The student has selected the following French text to learn. \
         If it's a word or phrase, explain its meaning with example usage. \
-        If it's a sentence, break it down into parts and explain its grammar. \
+        If it's a sentence, first translate, and then break it down into parts and explain its grammar. \
         Be as concise as possible. Start directly with no introduction. Use English for explanation. 
         """
 
