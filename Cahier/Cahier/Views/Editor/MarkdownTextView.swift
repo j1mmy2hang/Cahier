@@ -5,7 +5,6 @@ private enum EditorLayoutMetrics {
     static let minHorizontalPadding: CGFloat = 40
     static let verticalInset: CGFloat = 8
     static let maxReadableWidth: CGFloat = 720
-    static let bottomOverscrollViewportFraction: CGFloat = 0.5
 }
 
 struct MarkdownTextView: NSViewRepresentable {
@@ -23,7 +22,6 @@ struct MarkdownTextView: NSViewRepresentable {
         scrollView.hasHorizontalScroller = false
         scrollView.borderType = .noBorder
         scrollView.drawsBackground = false
-        scrollView.automaticallyAdjustsContentInsets = false
 
         let textView = HoverTextView()
         textView.isVerticallyResizable = true
@@ -100,17 +98,9 @@ struct MarkdownTextView: NSViewRepresentable {
 final class EditorScrollView: NSScrollView {
     var viewportDidChange: ((NSSize) -> Void)?
 
-    private var lastViewportSize: NSSize = .zero
-
     override func tile() {
         super.tile()
-
-        let viewportSize = contentSize
-        guard abs(viewportSize.width - lastViewportSize.width) > 0.5 ||
-                abs(viewportSize.height - lastViewportSize.height) > 0.5 else { return }
-
-        lastViewportSize = viewportSize
-        viewportDidChange?(viewportSize)
+        viewportDidChange?(contentSize)
     }
 }
 
@@ -201,13 +191,6 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
         if abs(textView.frame.width - viewportSize.width) > 0.5 {
             textView.setFrameSize(NSSize(width: viewportSize.width, height: textView.frame.height))
         }
-
-        scrollView.contentInsets = NSEdgeInsets(
-            top: 0,
-            left: 0,
-            bottom: viewportSize.height * EditorLayoutMetrics.bottomOverscrollViewportFraction,
-            right: 0
-        )
 
         textContainer.containerSize = NSSize(
             width: max(viewportSize.width - (horizontalInset * 2), 0),
