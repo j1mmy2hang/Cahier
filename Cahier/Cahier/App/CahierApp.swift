@@ -9,7 +9,6 @@ struct CahierApp: App {
         WindowGroup {
             ContentView()
                 .environment(appState)
-                // 960 = sidebar(min 180) + inspector(min 260) + editor + toolbar breathing room
                 .frame(minWidth: 960, minHeight: 600)
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
                     appState.noteStore.flushPendingSave()
@@ -23,7 +22,9 @@ struct CahierApp: App {
                 .keyboardShortcut("s", modifiers: .command)
 
                 Button(appState.showChatPanel ? "Hide Right Panel" : "Show Right Panel") {
-                    appState.showChatPanel.toggle()
+                    withAnimation {
+                        appState.showChatPanel.toggle()
+                    }
                 }
                 .keyboardShortcut("e", modifiers: .command)
             }

@@ -13,9 +13,46 @@ struct GlassButtonModifier: ViewModifier {
     }
 }
 
+struct ChatPanelResizeHandle: View {
+    @Binding var chatPanelWidth: CGFloat
+    @Binding var dragStartWidth: CGFloat
+    @State private var isDragging = false
+
+    var body: some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.001))
+            .frame(width: 8)
+            .overlay(Divider())
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                if hovering || isDragging {
+                    NSCursor.resizeLeftRight.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            .gesture(DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                .onChanged { value in
+                    if !isDragging {
+                        isDragging = true
+                        NSCursor.resizeLeftRight.push()
+                    }
+                    chatPanelWidth = max(200, min(600, dragStartWidth - value.translation.width))
+                }
+                .onEnded { _ in
+                    isDragging = false
+                    dragStartWidth = chatPanelWidth
+                    NSCursor.pop()
+                }
+            )
+    }
+}
+
 struct ContentView: View {
     @Environment(AppState.self) private var appState
     @State private var translationConfig: TranslationSession.Configuration?
+    @State private var chatPanelWidth: CGFloat = 420
+    @State private var dragStartWidth: CGFloat = 420
 
     var body: some View {
         Group {
@@ -37,23 +74,21 @@ struct ContentView: View {
     }
 
     private var mainView: some View {
-        @Bindable var bindableAppState = appState
-
-        return NavigationSplitView {
+        NavigationSplitView {
             SidebarView()
-                // Cap the sidebar so it can't expand and steal toolbar space
                 .navigationSplitViewColumnWidth(min: 180, ideal: 240, max: 300)
         } detail: {
-            // Inspector must be attached HERE (on the detail view), not on the
-            // NavigationSplitView itself. Attaching it to the split view causes
-            // the layout engine to mis-calculate available toolbar width, which
-            // squishes or hides toolbar items when the inspector is open.
-            EditorView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .inspector(isPresented: $bindableAppState.showChatPanel) {
+            HStack(spacing: 0) {
+                EditorView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                if appState.showChatPanel {
+                    ChatPanelResizeHandle(chatPanelWidth: $chatPanelWidth, dragStartWidth: $dragStartWidth)
                     ChatPanelView()
-                        .inspectorColumnWidth(min: 260, ideal: 320, max: 500)
+                        .frame(width: chatPanelWidth)
+                        .transition(.move(edge: .trailing))
                 }
+            }
         }
         .toolbar {
             ToolbarItem(placement: .navigation) {
@@ -66,7 +101,9 @@ struct ContentView: View {
 
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    appState.showChatPanel.toggle()
+                    withAnimation {
+                        appState.showChatPanel.toggle()
+                    }
                 } label: {
                     Label("Toggle AI Tutor", systemImage: "sidebar.trailing")
                 }

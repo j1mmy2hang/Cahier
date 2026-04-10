@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 struct MarkdownTextView: NSViewRepresentable {
     let note: Note
@@ -12,9 +13,8 @@ struct MarkdownTextView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
+        scrollView.hasVerticalScroller = false
         scrollView.hasHorizontalScroller = false
-        scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
         scrollView.drawsBackground = false
 
@@ -52,11 +52,13 @@ struct MarkdownTextView: NSViewRepresentable {
             coordinator.handleFlagsChanged(with: event)
         }
 
+        scrollView.automaticallyAdjustsContentInsets = false
         scrollView.documentView = textView
         context.coordinator.textView = textView
         context.coordinator.scrollView = scrollView
         textView.string = note.content
         context.coordinator.applyHighlighting()
+        context.coordinator.setupOverscroll(scrollView, textView: textView)
 
         return scrollView
     }
@@ -89,26 +91,6 @@ final class HoverTextView: NSTextView {
     var flagsChangedHandler: ((NSEvent) -> Void)?
 
     private var hoverTrackingArea: NSTrackingArea?
-    private var isAdjustingSize = false
-
-    /// Inflate the text view frame so the last line can scroll to mid-screen.
-    /// The extra space is part of the view's own frame, so the scrollbar
-    /// covers the full range and reaches the window bottom.
-    override func setFrameSize(_ newSize: NSSize) {
-        guard !isAdjustingSize,
-              let scrollView = enclosingScrollView,
-              let container = textContainer,
-              let lm = layoutManager else {
-            super.setFrameSize(newSize)
-            return
-        }
-        isAdjustingSize = true
-        let contentHeight = lm.usedRect(for: container).height + textContainerInset.height * 2
-        let visibleHeight = scrollView.contentSize.height
-        let desiredHeight = max(contentHeight + visibleHeight * 0.5, newSize.height)
-        super.setFrameSize(NSSize(width: newSize.width, height: desiredHeight))
-        isAdjustingSize = false
-    }
 
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
@@ -156,10 +138,36 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
     private var lastHoveredWordRange: NSRange?
     private var translationPanel: NSPanel?
     private var selectionPanel: NSPanel?
+    private var cancellables = Set<AnyCancellable>()
 
     init(parent: MarkdownTextView) {
         self.parent = parent
         super.init()
+    }
+
+    // MARK: - Bottom Overscroll
+
+    /// Uses scroll-view content insets for overscroll space so the last line
+    /// can be scrolled to mid-screen. The text view's minSize ensures it always
+    /// fills the visible area (so clicks work everywhere in the viewport).
+    func setupOverscroll(_ scrollView: NSScrollView, textView: NSTextView) {
+        scrollView.postsFrameChangedNotifications = true
+        NotificationCenter.default.publisher(for: NSView.frameDidChangeNotification, object: scrollView)
+            .sink { [weak scrollView, weak textView] _ in
+                Self.applyOverscrollInsets(scrollView: scrollView, textView: textView)
+            }
+            .store(in: &cancellables)
+        // Defer initial application to after first layout pass
+        DispatchQueue.main.async {
+            Self.applyOverscrollInsets(scrollView: scrollView, textView: textView)
+        }
+    }
+
+    private static func applyOverscrollInsets(scrollView: NSScrollView?, textView: NSTextView?) {
+        guard let scrollView, let textView else { return }
+        let visibleHeight = scrollView.contentSize.height
+        textView.minSize = NSSize(width: textView.minSize.width, height: visibleHeight)
+        scrollView.contentInsets = NSEdgeInsets(top: 0, left: 0, bottom: visibleHeight * 0.5, right: 0)
     }
 
     // MARK: - Text Editing
