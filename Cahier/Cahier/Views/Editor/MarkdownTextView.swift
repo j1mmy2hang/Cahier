@@ -1,15 +1,32 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Layout Metrics
+
 private enum EditorLayoutMetrics {
     static let minHorizontalPadding: CGFloat = 40
-    static let verticalInset: CGFloat = 8
     static let maxReadableWidth: CGFloat = 720
+
+    static let titleTopPadding: CGFloat = 40
+    static let titleBottomPadding: CGFloat = 10
+    static let dividerHeight: CGFloat = 1
+    static let dividerBottomPadding: CGFloat = 18
+    static let bodyBottomPadding: CGFloat = 0
+
+    /// Fraction of the viewport height reserved as scrollable empty space after
+    /// the last line of body text. 0.5 lets the final line rest at the middle
+    /// of the viewport when scrolled to the maximum, matching Obsidian / Notion.
+    static let bottomOverscrollRatio: CGFloat = 0.5
+
+    static let titleFontSize: CGFloat = 26
 }
 
-struct MarkdownTextView: NSViewRepresentable {
+// MARK: - Representable
+
+struct NotePageView: NSViewRepresentable {
     let note: Note
     var onTextChange: (String) -> Void
+    var onTitleCommit: (String) -> Void
     var onSelectionChange: (String?, NSRect?) -> Void
     var onHoverWord: (String?, NSPoint?) -> Void
     var translationService: TranslationService
@@ -17,21 +34,47 @@ struct MarkdownTextView: NSViewRepresentable {
     var appState: AppState
 
     func makeNSView(context: Context) -> NSScrollView {
-        let scrollView = EditorScrollView()
+        let coordinator = context.coordinator
+
+        let scrollView = NotePageScrollView()
         scrollView.hasVerticalScroller = false
         scrollView.hasHorizontalScroller = false
         scrollView.borderType = .noBorder
         scrollView.drawsBackground = false
+        scrollView.automaticallyAdjustsContentInsets = false
+        scrollView.contentInsets = NSEdgeInsets()
+        scrollView.scrollerInsets = NSEdgeInsets()
 
-        let textView = HoverTextView()
-        textView.isVerticallyResizable = true
+        let contentView = NotePageContentView(frame: .zero)
+        contentView.autoresizingMask = [.width]
+
+        // Title
+        let titleField = contentView.titleField
+        titleField.delegate = coordinator
+        titleField.isBordered = false
+        titleField.drawsBackground = false
+        titleField.isEditable = true
+        titleField.isSelectable = true
+        titleField.usesSingleLineMode = true
+        titleField.cell?.wraps = false
+        titleField.cell?.isScrollable = true
+        titleField.cell?.usesSingleLineMode = true
+        titleField.lineBreakMode = .byTruncatingTail
+        titleField.focusRingType = .none
+        titleField.placeholderString = "Note Title"
+        titleField.stringValue = note.title
+        titleField.font = Self.titleFont()
+
+        // Body
+        let textView = contentView.textView
+        textView.delegate = coordinator
+        textView.isVerticallyResizable = false
         textView.isHorizontallyResizable = false
-        textView.autoresizingMask = [.width]
-        textView.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
-        textView.textContainer?.widthTracksTextView = true
+        textView.autoresizingMask = []
+        textView.textContainerInset = .zero
         textView.textContainer?.lineFragmentPadding = 0
-
-        textView.delegate = context.coordinator
+        textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.containerSize = NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
         textView.isRichText = false
         textView.usesFindPanel = true
         textView.isAutomaticQuoteSubstitutionEnabled = false
@@ -44,63 +87,200 @@ struct MarkdownTextView: NSViewRepresentable {
         textView.insertionPointColor = .labelColor
         textView.backgroundColor = .clear
         textView.drawsBackground = false
-        textView.textContainerInset = NSSize(
-            width: EditorLayoutMetrics.minHorizontalPadding,
-            height: EditorLayoutMetrics.verticalInset
-        )
-
-        let coordinator = context.coordinator
-        textView.hoverHandler = { event in
-            coordinator.handleMouseMoved(with: event)
-        }
-        textView.exitHandler = { event in
-            coordinator.handleMouseExited(with: event)
-        }
-        textView.flagsChangedHandler = { event in
-            coordinator.handleFlagsChanged(with: event)
-        }
-        scrollView.viewportDidChange = { [weak coordinator] viewportSize in
-            coordinator?.applyViewportLayout(for: viewportSize)
-        }
-
-        scrollView.documentView = textView
-        context.coordinator.textView = textView
-        context.coordinator.scrollView = scrollView
         textView.string = note.content
-        context.coordinator.applyHighlighting()
-        context.coordinator.applyViewportLayout(for: scrollView.contentSize)
+
+        textView.hoverHandler = { [weak coordinator] event in
+            coordinator?.handleMouseMoved(with: event)
+        }
+        textView.exitHandler = { [weak coordinator] event in
+            coordinator?.handleMouseExited(with: event)
+        }
+        textView.flagsChangedHandler = { [weak coordinator] event in
+            coordinator?.handleFlagsChanged(with: event)
+        }
+
+        // Press Tab / Enter in the title → focus body text view
+        titleField.nextKeyView = textView
+
+        scrollView.documentView = contentView
+        scrollView.viewportDidChange = { [weak coordinator] size in
+            coordinator?.handleViewportChange(size: size)
+        }
+
+        coordinator.scrollView = scrollView
+        coordinator.contentView = contentView
+        coordinator.textView = textView
+        coordinator.titleField = titleField
+
+        coordinator.applyHighlighting()
+        coordinator.handleViewportChange(size: scrollView.contentSize)
 
         return scrollView
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        guard let textView = scrollView.documentView as? NSTextView else { return }
+        let coordinator = context.coordinator
+        coordinator.parent = self
 
-        // Keep coordinator in sync with latest struct values (closures, services, etc.)
-        context.coordinator.parent = self
+        guard let contentView = scrollView.documentView as? NotePageContentView else { return }
+        let textView = contentView.textView
+        let titleField = contentView.titleField
 
-        // Only push external content changes when the user isn't actively typing
-        if !context.coordinator.isEditing && textView.string != note.content {
+        // Apply external body edits only when the user isn't typing
+        if !coordinator.isBodyEditing && textView.string != note.content {
             let selectedRanges = textView.selectedRanges
             textView.string = note.content
             textView.selectedRanges = selectedRanges
-            context.coordinator.applyHighlighting()
+            coordinator.applyHighlighting()
+            contentView.needsLayout = true
         }
 
-        context.coordinator.applyViewportLayout()
+        // Apply external title changes only when the field isn't focused
+        if !coordinator.isTitleEditing && titleField.stringValue != note.title {
+            titleField.stringValue = note.title
+            contentView.needsLayout = true
+        }
+
+        coordinator.handleViewportChange(size: scrollView.contentSize)
     }
 
-    func makeCoordinator() -> MarkdownTextViewCoordinator {
-        MarkdownTextViewCoordinator(parent: self)
+    func makeCoordinator() -> NotePageCoordinator {
+        NotePageCoordinator(parent: self)
+    }
+
+    private static func titleFont() -> NSFont {
+        let base = NSFont.systemFont(ofSize: EditorLayoutMetrics.titleFontSize, weight: .semibold)
+        if let descriptor = base.fontDescriptor.withDesign(.serif),
+           let font = NSFont(descriptor: descriptor, size: EditorLayoutMetrics.titleFontSize) {
+            return font
+        }
+        return base
     }
 }
 
-final class EditorScrollView: NSScrollView {
+// MARK: - Scroll View
+
+final class NotePageScrollView: NSScrollView {
     var viewportDidChange: ((NSSize) -> Void)?
 
     override func tile() {
         super.tile()
         viewportDidChange?(contentSize)
+    }
+}
+
+// MARK: - Document View
+
+/// The scroll view's `documentView`. Owns the title field, divider, and body
+/// text view, and lays them out manually so all three scroll as one page.
+final class NotePageContentView: NSView {
+    let titleField = NSTextField()
+    let divider: NSBox = {
+        let box = NSBox()
+        box.boxType = .separator
+        return box
+    }()
+    let textView = HoverTextView()
+
+    var horizontalInset: CGFloat = EditorLayoutMetrics.minHorizontalPadding {
+        didSet { if horizontalInset != oldValue { needsLayout = true } }
+    }
+
+    var viewportHeight: CGFloat = 0 {
+        didSet { if viewportHeight != oldValue { needsLayout = true } }
+    }
+
+    override var isFlipped: Bool { true }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        addSubview(titleField)
+        addSubview(divider)
+        addSubview(textView)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layout() {
+        super.layout()
+
+        let width = bounds.width
+        guard width > 0 else { return }
+
+        let hInset = max(0, horizontalInset)
+        let contentWidth = max(0, width - hInset * 2)
+
+        // Title
+        let titleIntrinsic = titleField.intrinsicContentSize.height
+        let titleHeight = max(titleIntrinsic, EditorLayoutMetrics.titleFontSize * 1.35)
+        let titleY = EditorLayoutMetrics.titleTopPadding
+        titleField.frame = NSRect(x: hInset, y: titleY, width: contentWidth, height: titleHeight)
+
+        // Divider
+        let dividerY = titleY + titleHeight + EditorLayoutMetrics.titleBottomPadding
+        divider.frame = NSRect(
+            x: hInset,
+            y: dividerY,
+            width: contentWidth,
+            height: EditorLayoutMetrics.dividerHeight
+        )
+
+        // Body
+        let bodyY = dividerY + EditorLayoutMetrics.dividerHeight + EditorLayoutMetrics.dividerBottomPadding
+
+        // Size the text container to the current readable width, then measure.
+        if let textContainer = textView.textContainer {
+            let target = NSSize(width: contentWidth, height: CGFloat.greatestFiniteMagnitude)
+            if textContainer.containerSize != target {
+                textContainer.containerSize = target
+            }
+            textView.layoutManager?.ensureLayout(for: textContainer)
+        }
+        let usedHeight = textView.layoutManager.map { lm -> CGFloat in
+            guard let container = textView.textContainer else { return 0 }
+            return lm.usedRect(for: container).height
+        } ?? 0
+        let minBodyHeight = MarkdownHighlighter.defaultFont.pointSize * 1.8
+        let naturalBodyHeight = max(usedHeight, minBodyHeight)
+        let naturalEnd = bodyY + naturalBodyHeight + EditorLayoutMetrics.bodyBottomPadding
+
+        let overscroll = max(0, viewportHeight * EditorLayoutMetrics.bottomOverscrollRatio)
+
+        let finalHeight: CGFloat
+        let bodyHeight: CGFloat
+        if naturalEnd >= viewportHeight {
+            // Long note: add phantom space below so the last line can scroll
+            // to the middle of the viewport. Text view sits at natural height.
+            finalHeight = naturalEnd + overscroll
+            bodyHeight = naturalBodyHeight
+        } else {
+            // Short note: extend the text view all the way to the viewport
+            // bottom so clicks below the text still land on the editor and
+            // place the cursor at the end.
+            finalHeight = max(viewportHeight, naturalEnd)
+            bodyHeight = max(0, finalHeight - bodyY - EditorLayoutMetrics.bodyBottomPadding)
+        }
+
+        textView.frame = NSRect(x: hInset, y: bodyY, width: contentWidth, height: bodyHeight)
+
+        if abs(frame.height - finalHeight) > 0.5 {
+            setFrameSize(NSSize(width: width, height: finalHeight))
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        // Clicks in the phantom padding below the text view place the cursor
+        // at the end of the document — standard note-editor UX.
+        let point = convert(event.locationInWindow, from: nil)
+        if point.y > textView.frame.maxY, let window {
+            window.makeFirstResponder(textView)
+            let length = (textView.string as NSString).length
+            textView.setSelectedRange(NSRange(location: length, length: 0))
+            return
+        }
+        super.mouseDown(with: event)
     }
 }
 
@@ -116,7 +296,6 @@ final class HoverTextView: NSTextView {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
 
-        // Only remove OUR custom tracking area, never touch system ones
         if let existing = hoverTrackingArea {
             removeTrackingArea(existing)
         }
@@ -131,12 +310,12 @@ final class HoverTextView: NSTextView {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        super.mouseMoved(with: event) // Preserve native I-beam cursor behavior
+        super.mouseMoved(with: event)
         hoverHandler?(event)
     }
 
     override func mouseExited(with event: NSEvent) {
-        super.mouseExited(with: event) // Preserve native cursor restore
+        super.mouseExited(with: event)
         exitHandler?(event)
     }
 
@@ -149,84 +328,118 @@ final class HoverTextView: NSTextView {
 // MARK: - Coordinator
 
 @MainActor
-final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
-    var parent: MarkdownTextView
-    weak var textView: NSTextView?
-    weak var scrollView: NSScrollView?
-    var isEditing = false
+final class NotePageCoordinator: NSObject, NSTextViewDelegate, NSTextFieldDelegate {
+    var parent: NotePageView
+    weak var scrollView: NotePageScrollView?
+    weak var contentView: NotePageContentView?
+    weak var textView: HoverTextView?
+    weak var titleField: NSTextField?
+
+    var isBodyEditing = false
+    var isTitleEditing = false
 
     private let hoverDebouncer = Debouncer(delay: 0.4)
     private var lastHoveredWordRange: NSRange?
     private var translationPanel: NSPanel?
     private var selectionPanel: NSPanel?
-    init(parent: MarkdownTextView) {
+    private var lastAppliedViewport: NSSize = .zero
+
+    init(parent: NotePageView) {
         self.parent = parent
         super.init()
     }
 
-    // MARK: - Layout
+    // MARK: - Viewport
 
-    func applyViewportLayout(for viewportSize: NSSize? = nil) {
-        guard let scrollView,
-              let textView,
-              let textContainer = textView.textContainer else { return }
+    func handleViewportChange(size: NSSize) {
+        guard let contentView else { return }
+        guard size.width > 0, size.height > 0 else { return }
 
-        let viewportSize = viewportSize ?? scrollView.contentSize
-        guard viewportSize.width > 0, viewportSize.height > 0 else { return }
-
-        let readableWidth = min(
-            EditorLayoutMetrics.maxReadableWidth,
-            max(viewportSize.width - (EditorLayoutMetrics.minHorizontalPadding * 2), 0)
-        )
-        let horizontalInset = max(
-            EditorLayoutMetrics.minHorizontalPadding,
-            ((viewportSize.width - readableWidth) / 2).rounded(.down)
-        )
-
-        textView.textContainerInset = NSSize(
-            width: horizontalInset,
-            height: EditorLayoutMetrics.verticalInset
-        )
-        textView.minSize = NSSize(width: viewportSize.width, height: viewportSize.height)
-        if abs(textView.frame.width - viewportSize.width) > 0.5 {
-            textView.setFrameSize(NSSize(width: viewportSize.width, height: textView.frame.height))
+        if abs(size.width - lastAppliedViewport.width) < 0.5 &&
+           abs(size.height - lastAppliedViewport.height) < 0.5 {
+            return
         }
+        lastAppliedViewport = size
 
-        textContainer.containerSize = NSSize(
-            width: max(viewportSize.width - (horizontalInset * 2), 0),
-            height: CGFloat.greatestFiniteMagnitude
+        let readable = min(
+            EditorLayoutMetrics.maxReadableWidth,
+            max(size.width - EditorLayoutMetrics.minHorizontalPadding * 2, 0)
         )
-        textView.layoutManager?.ensureLayout(for: textContainer)
+        let hInset = max(
+            EditorLayoutMetrics.minHorizontalPadding,
+            ((size.width - readable) / 2).rounded(.down)
+        )
+
+        if abs(contentView.frame.width - size.width) > 0.5 {
+            contentView.setFrameSize(NSSize(width: size.width, height: contentView.frame.height))
+        }
+        contentView.horizontalInset = hInset
+        contentView.viewportHeight = size.height
+        contentView.layoutSubtreeIfNeeded()
     }
 
-    // MARK: - Text Editing
+    // MARK: - Title delegate
+
+    func controlTextDidBeginEditing(_ obj: Notification) {
+        isTitleEditing = true
+    }
+
+    func controlTextDidChange(_ obj: Notification) {
+        contentView?.needsLayout = true
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        isTitleEditing = false
+        commitTitleIfNeeded()
+    }
+
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+            control.window?.makeFirstResponder(self.textView)
+            return true
+        }
+        return false
+    }
+
+    private func commitTitleIfNeeded() {
+        guard let titleField else { return }
+        let trimmed = titleField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let current = parent.note.title
+        guard !trimmed.isEmpty, trimmed != current else {
+            titleField.stringValue = current
+            return
+        }
+        parent.onTitleCommit(trimmed)
+        // If rename failed, note.title is unchanged and updateNSView will
+        // overwrite the field's value back to the previous title.
+    }
+
+    // MARK: - Body delegate
 
     func textDidBeginEditing(_ notification: Notification) {
-        isEditing = true
+        isBodyEditing = true
     }
 
     func textDidEndEditing(_ notification: Notification) {
-        isEditing = false
+        isBodyEditing = false
     }
 
     func textDidChange(_ notification: Notification) {
         guard let textView else { return }
-        isEditing = true
+        isBodyEditing = true
         dismissTranslationPanel()
         parent.onTextChange(textView.string)
         applyHighlighting()
+        contentView?.needsLayout = true
         DispatchQueue.main.async { [weak self] in
-            self?.isEditing = false
+            self?.isBodyEditing = false
         }
     }
 
-    // MARK: - Selection
-
     func textViewDidChangeSelection(_ notification: Notification) {
         guard let textView else { return }
-        
-        dismissTranslationPanel() // Hide translation when user selects text
-        
+        dismissTranslationPanel()
+
         let range = textView.selectedRange()
 
         if range.length > 0 {
@@ -236,15 +449,10 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
 
             let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
             let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
-            let viewRect = NSRect(
-                x: rect.origin.x + textView.textContainerInset.width,
-                y: rect.origin.y + textView.textContainerInset.height,
-                width: rect.width,
-                height: rect.height
-            )
-
-            parent.onSelectionChange(selectedString, viewRect)
-            showSelectionPanel(text: selectedString, at: viewRect)
+            // textContainerInset is .zero, so the container rect is already in
+            // textView-local coordinates.
+            parent.onSelectionChange(selectedString, rect)
+            showSelectionPanel(text: selectedString, at: rect)
         } else {
             parent.onSelectionChange(nil, nil)
             hideSelectionPanel()
@@ -255,9 +463,9 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
 
     func handleMouseMoved(with event: NSEvent) {
         guard let textView else { return }
-        
+
         let point = textView.convert(event.locationInWindow, from: nil)
-        
+
         let hoverModeRaw = UserDefaults.standard.string(forKey: "hoverLookupMode") ?? HoverLookupMode.automatic.rawValue
         let isManualMode = hoverModeRaw == HoverLookupMode.manual.rawValue
         let isCommandPressed = event.modifierFlags.contains(.command)
@@ -274,18 +482,18 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
 
     func handleFlagsChanged(with event: NSEvent) {
         guard let textView else { return }
-        
+
         let hoverModeRaw = UserDefaults.standard.string(forKey: "hoverLookupMode") ?? HoverLookupMode.automatic.rawValue
         let isManualMode = hoverModeRaw == HoverLookupMode.manual.rawValue
         guard isManualMode else { return }
-        
+
         let isCommandPressed = event.modifierFlags.contains(.command)
-        
+
         if isCommandPressed {
             guard let window = textView.window else { return }
             let windowPoint = window.mouseLocationOutsideOfEventStream
             let localPoint = textView.convert(windowPoint, from: nil)
-            
+
             if textView.bounds.contains(localPoint) {
                 evaluateHover(at: localPoint, isCommandPressed: true, isManualMode: true)
             }
@@ -340,10 +548,8 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
         }
 
         if isManualMode && isCommandPressed {
-            // Instant, no debounce!
             triggerTranslation()
         } else {
-            // Automatic mode, use debounce
             hoverDebouncer.debounce {
                 triggerTranslation()
             }
@@ -368,8 +574,8 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
         let glyphRange = layoutManager.glyphRange(forCharacterRange: wordRange, actualCharacterRange: nil)
         let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
         let viewRect = NSRect(
-            x: rect.origin.x + textView.textContainerInset.width,
-            y: rect.origin.y + textView.textContainerInset.height,
+            x: rect.origin.x,
+            y: rect.origin.y,
             width: max(rect.width, 1),
             height: max(rect.height, 1)
         )
@@ -386,12 +592,12 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
         panel.isOpaque = false
         panel.level = .floating
         panel.hasShadow = true
-        panel.ignoresMouseEvents = true // Passes mouse events through! Solves cursor clash.
+        panel.ignoresMouseEvents = true
 
         let content = TranslationBubbleView(result: result)
         let hostingView = NSHostingView(rootView: content)
         panel.contentView = hostingView
-        
+
         let size = hostingView.fittingSize
         panel.setContentSize(size)
 
@@ -400,22 +606,19 @@ final class MarkdownTextViewCoordinator: NSObject, NSTextViewDelegate {
         let screenPoint = window.convertPoint(toScreen: windowPoint)
 
         var panelX = screenPoint.x - (size.width / 2.0)
-        var panelY = screenPoint.y + 6 // Slightly above the word
-        
-        // Boundaries check
+        var panelY = screenPoint.y + 6
+
         if let screenFrame = window.screen?.visibleFrame {
             if panelX < screenFrame.minX + 16 {
                 panelX = screenFrame.minX + 16
             } else if panelX + size.width > screenFrame.maxX - 16 {
                 panelX = screenFrame.maxX - 16 - size.width
             }
-            
-            // If the popup goes above the screen, show it below the word
+
             if panelY + size.height > screenFrame.maxY - 16 {
                 let bottomViewPoint = NSPoint(x: viewRect.midX, y: viewRect.maxY)
                 let bottomWindowPoint = textView.convert(bottomViewPoint, to: nil)
                 let bottomScreenPoint = window.convertPoint(toScreen: bottomWindowPoint)
-                // Position below the text
                 panelY = bottomScreenPoint.y - size.height - 6
             }
         }

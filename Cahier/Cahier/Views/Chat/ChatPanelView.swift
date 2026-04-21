@@ -31,7 +31,7 @@ struct ChatPanelView: View {
                         // Anchor sits outside the LazyVStack so it doesn't inherit
                         // the 16pt inter-item spacing or cause layout flicker.
                         Color.clear
-                            .frame(height: 0)
+                            .frame(height: 64)
                             .id("bottom")
                             .onAppear { isNearBottom = true }
                             .onDisappear { isNearBottom = false }
