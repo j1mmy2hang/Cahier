@@ -17,6 +17,9 @@ struct SettingsView: View {
     @State private var showTTSSaved = false
     @AppStorage("hoverLookupMode") private var hoverMode: HoverLookupMode = .automatic
 
+    private enum Field { case openRouterKey, elevenLabsKey, elevenLabsVoiceId }
+    @FocusState private var focusedField: Field?
+
     var body: some View {
         Form {
             Section("Notes Folder") {
@@ -44,6 +47,7 @@ struct SettingsView: View {
             Section("OpenRouter API Key") {
                 SecureField("sk-or-v1-...", text: $apiKey)
                     .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .openRouterKey)
                     .onSubmit { saveAPIKey() }
 
                 HStack {
@@ -62,10 +66,12 @@ struct SettingsView: View {
             Section("ElevenLabs TTS") {
                 SecureField("ElevenLabs API key", text: $elevenLabsKey)
                     .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .elevenLabsKey)
                     .onSubmit { saveTTSSettings() }
 
                 TextField("Voice ID (default: Daniel)", text: $elevenLabsVoiceId)
                     .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .elevenLabsVoiceId)
                     .onSubmit { saveTTSSettings() }
 
                 HStack {
@@ -89,6 +95,7 @@ struct SettingsView: View {
         .frame(width: 450, height: 490)
         .onAppear {
             folderPath = appState.notebookFolderURL?.path(percentEncoded: false) ?? "No folder selected"
+            focusedField = nil
         }
     }
 

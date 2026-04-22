@@ -354,9 +354,57 @@ final class NotePageCoordinator: NSObject, NSTextViewDelegate, NSTextFieldDelega
     private var selectionPanel: NSPanel?
     private var lastAppliedViewport: NSSize = .zero
 
+    /// Tracks whether hover should be suppressed because the user pressed a
+    /// letter key while Command was held (i.e. a keyboard shortcut).
+    private var shortcutSuppressed = false
+    /// Work item for the grace-period delay when Command is first pressed in
+    /// manual hover mode. Cancelled if a letter key arrives before it fires.
+    private var commandGraceItem: DispatchWorkItem?
+    /// App-wide monitor that catches key-down events even when they are
+    /// consumed by the menu system (e.g. Cmd+, for Settings).
+    /// `nonisolated(unsafe)` because deinit is nonisolated; safe here since
+    /// the property is written once in init and read once in deinit.
+    nonisolated(unsafe) private var keyDownMonitor: Any?
+
     init(parent: NotePageView) {
         self.parent = parent
         super.init()
+
+        // Dismiss all floating bubbles when the window loses focus or closes.
+        let nc = NotificationCenter.default
+        nc.addObserver(self, selector: #selector(windowDidResignKey),
+                       name: NSWindow.didResignKeyNotification, object: nil)
+        nc.addObserver(self, selector: #selector(windowDidResignKey),
+                       name: NSWindow.willCloseNotification, object: nil)
+
+        // Monitor ALL key-down events app-wide. System/menu shortcuts like
+        // Cmd+, never reach NSTextView.keyDown, so a local monitor is the
+        // only reliable way to detect them and suppress hover translation.
+        keyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if event.modifierFlags.contains(.command) {
+                self?.handleCommandKeyDown()
+            }
+            return event  // pass the event through unmodified
+        }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        if let monitor = keyDownMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+    }
+
+    @objc private func windowDidResignKey(_ notification: Notification) {
+        dismissAllPanels()
+    }
+
+    /// Dismiss both the translation bubble and the selection popup.
+    private func dismissAllPanels() {
+        lastHoveredWordRange = nil
+        dismissTranslationPanel()
+        hideSelectionPanel()
+        parent.onHoverWord(nil, nil)
     }
 
     // MARK: - Viewport
@@ -487,6 +535,12 @@ final class NotePageCoordinator: NSObject, NSTextViewDelegate, NSTextFieldDelega
             return
         }
 
+        // If a keyboard shortcut was detected (Command + letter key), suppress
+        // hover translation even in automatic mode.
+        if isCommandPressed && shortcutSuppressed {
+            return
+        }
+
         evaluateHover(at: point, isCommandPressed: isCommandPressed, isManualMode: isManualMode)
     }
 
@@ -500,18 +554,43 @@ final class NotePageCoordinator: NSObject, NSTextViewDelegate, NSTextFieldDelega
         let isCommandPressed = event.modifierFlags.contains(.command)
 
         if isCommandPressed {
-            guard let window = textView.window else { return }
-            let windowPoint = window.mouseLocationOutsideOfEventStream
-            let localPoint = textView.convert(windowPoint, from: nil)
+            // Don't trigger hover immediately — wait a short grace period so
+            // keyboard shortcuts (Cmd+S, Cmd+B, Cmd+,) can fire first.
+            commandGraceItem?.cancel()
+            shortcutSuppressed = false
 
-            if textView.bounds.contains(localPoint) {
-                evaluateHover(at: localPoint, isCommandPressed: true, isManualMode: true)
+            let item = DispatchWorkItem { [weak self] in
+                guard let self, !self.shortcutSuppressed else { return }
+                guard let tv = self.textView, let window = tv.window else { return }
+                let windowPoint = window.mouseLocationOutsideOfEventStream
+                let localPoint = tv.convert(windowPoint, from: nil)
+
+                if tv.bounds.contains(localPoint) {
+                    self.evaluateHover(at: localPoint, isCommandPressed: true, isManualMode: true)
+                }
             }
+            commandGraceItem = item
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: item)
         } else {
+            commandGraceItem?.cancel()
+            commandGraceItem = nil
+            shortcutSuppressed = false
             lastHoveredWordRange = nil
             dismissTranslationPanel()
             parent.onHoverWord(nil, nil)
         }
+    }
+
+    /// Called by `HoverTextView.keyDown` when a key is pressed while Command
+    /// is held. Suppresses hover translation since the user is using a
+    /// keyboard shortcut, not hovering to translate.
+    func handleCommandKeyDown() {
+        shortcutSuppressed = true
+        commandGraceItem?.cancel()
+        commandGraceItem = nil
+        lastHoveredWordRange = nil
+        dismissTranslationPanel()
+        parent.onHoverWord(nil, nil)
     }
 
     private func evaluateHover(at point: NSPoint, isCommandPressed: Bool, isManualMode: Bool) {

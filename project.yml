@@ -18,14 +18,14 @@ targets:
     dependencies:
       - package: MarkdownUI
     sources:
-      - Cahier
+      - Sources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.cahier.app
         PRODUCT_NAME: Cahier
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "15.0"
-        CODE_SIGN_ENTITLEMENTS: Cahier/Resources/Cahier.entitlements
+        CODE_SIGN_ENTITLEMENTS: Sources/Resources/Cahier.entitlements
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.education"
         INFOPLIST_KEY_CFBundleDisplayName: Cahier
         SWIFT_STRICT_CONCURRENCY: complete
@@ -35,7 +35,7 @@ targets:
         ENABLE_USER_SCRIPT_SANDBOXING: "YES"
         GENERATE_INFOPLIST_FILE: "YES"
     entitlements:
-      path: Cahier/Resources/Cahier.entitlements
+      path: Sources/Resources/Cahier.entitlements
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.files.user-selected.read-write: true
