@@ -28,8 +28,14 @@ final class AppState {
     var conversation = Conversation()
     var showChatPanel = true
 
+    /// When set, the editor locates this substring in the current note,
+    /// scrolls to it, flashes a highlight, then clears this back to nil.
+    /// Driven from Cahier Plus → source link click.
+    var highlightTargetText: String?
+
     // Services
     var noteStore = NoteStore()
+    var vocabStore = VocabStore()
     var translationService = TranslationService()
     var ttsService = TTSService()
     private(set) var aiService: AIService?
@@ -50,6 +56,15 @@ final class AppState {
 
     func reloadTTSService() {
         ttsService.reloadSettings()
+    }
+
+    /// Single entry point for pointing the app at a notebook folder. Used by
+    /// the welcome screen, Settings, and bookmark restoration so both stores
+    /// stay in sync.
+    func openFolder(_ url: URL) {
+        notebookFolderURL = url
+        noteStore.setFolder(url, appState: self)
+        vocabStore.setFolder(url)
     }
 
     // MARK: - Security-Scoped Bookmark
@@ -80,6 +95,7 @@ final class AppState {
         if url.startAccessingSecurityScopedResource() {
             notebookFolderURL = url
             noteStore.setFolder(url, appState: self)
+            vocabStore.setFolder(url)
         }
     }
 }

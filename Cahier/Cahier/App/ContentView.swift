@@ -50,6 +50,7 @@ struct ChatPanelResizeHandle: View {
 
 struct ContentView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.openWindow) private var openWindow
     @State private var translationConfig: TranslationSession.Configuration?
     @State private var chatPanelWidth: CGFloat = 420
     @State private var dragStartWidth: CGFloat = 420
@@ -97,6 +98,15 @@ struct ContentView: View {
                 }
                 .keyboardShortcut("n", modifiers: .command)
                 .help("New Note")
+            }
+
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    openWindow(id: "cahier-plus")
+                } label: {
+                    Label("Cahier Plus", systemImage: "rectangle.stack")
+                }
+                .help("Cahier Plus — review vocabulary")
             }
 
             ToolbarItem(placement: .primaryAction) {
@@ -155,10 +165,7 @@ struct ContentView: View {
         panel.message = "Select a folder for your French notes"
 
         if panel.runModal() == .OK, let url = panel.url {
-            appState.notebookFolderURL = url
-            appState.noteStore.setFolder(url, appState: appState)
+            appState.openFolder(url)
         }
     }
-
-
 }

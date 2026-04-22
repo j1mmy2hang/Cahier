@@ -10,9 +10,12 @@
 		02FD7BFFF6F8B4253963D751 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E7494585208CAD00DD6BAB /* SettingsView.swift */; };
 		1867533C9E11C2A9E13454F4 /* NoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 969BA7AB136BAEA2D92B4AC8 /* NoteStore.swift */; };
 		1A0D02AAC34D1B382884367C /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FFA428A560EBA767B137700 /* SidebarView.swift */; };
+		388273E90D15F58B7E157EA7 /* ReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FBDAED4819A917FAB3DA058 /* ReviewView.swift */; };
 		3EF31915EDD02F2489C8B7B0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A179E966339A96EB776D185C /* ContentView.swift */; };
 		47AAF3294CBA681E2D8B52A2 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E54D13ADC93E375CF8705089 /* TTSService.swift */; };
+		4883FA15CC3B9685F4635F49 /* VocabTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06B61817194B0E4F8606AFC1 /* VocabTableView.swift */; };
 		4F3E6AF05025A352699C3A10 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D90E0B74A1EE647B2159D0 /* EditorView.swift */; };
+		61F7E8B5943226B9D3C90600 /* VocabEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84727E43417C0DE3C6F4DED /* VocabEntry.swift */; };
 		7662BFEAB1CE3A0FA51265D0 /* TranslationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF882ECD940E9A386B2FB2F1 /* TranslationService.swift */; };
 		76C8D93B9743E00EFD6E86C4 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 417D6A53545A5108ECF67AAB /* Note.swift */; };
 		9370B9F66DF976C61A763F47 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFC7ECD6C54EF504D92D253 /* AppState.swift */; };
@@ -24,6 +27,8 @@
 		C7B8ADB9DE196DEA2391D180 /* MarkdownTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BE667158F06740EBDC38F83 /* MarkdownTextView.swift */; };
 		D05B4BE6E4B5AAA1208961A0 /* MarkdownHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14CFEE0A7B3296CBADED8FB0 /* MarkdownHighlighter.swift */; };
 		D08C25434BC509A8ADB6748B /* ChatInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF46119B14910D286282D5A1 /* ChatInputView.swift */; };
+		DA56571CBEE5F77159FA1113 /* CahierPlusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F911C41282D2115F120ECB3 /* CahierPlusView.swift */; };
+		E3086962EBD11CC44F35B564 /* VocabStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFEFF15C3C63CF4B557220A /* VocabStore.swift */; };
 		E59D704B98F1C0034018CC0F /* ChatMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D63D98DEBA5A95161DB4CB /* ChatMessageView.swift */; };
 		EE9F117C064C3AE9B7EBE681 /* CahierApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D89B75741D78547F2269F5E /* CahierApp.swift */; };
 		EEB2FA07F03828418CC40475 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 404510A9C5946A17588453F4 /* MarkdownUI */; };
@@ -32,14 +37,18 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		06B61817194B0E4F8606AFC1 /* VocabTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabTableView.swift; sourceTree = "<group>"; };
 		14CFEE0A7B3296CBADED8FB0 /* MarkdownHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownHighlighter.swift; sourceTree = "<group>"; };
 		1675F727FE62D163ECC16DFA /* ChatPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPanelView.swift; sourceTree = "<group>"; };
 		1BE667158F06740EBDC38F83 /* MarkdownTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownTextView.swift; sourceTree = "<group>"; };
+		1FBDAED4819A917FAB3DA058 /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
 		21B70162CED35C86DA33AE27 /* AIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIService.swift; sourceTree = "<group>"; };
 		417D6A53545A5108ECF67AAB /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
+		5AFEFF15C3C63CF4B557220A /* VocabStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabStore.swift; sourceTree = "<group>"; };
 		5D89B75741D78547F2269F5E /* CahierApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CahierApp.swift; sourceTree = "<group>"; };
 		63D63D98DEBA5A95161DB4CB /* ChatMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessageView.swift; sourceTree = "<group>"; };
 		6879595A1A53F94557C9BC4A /* Cahier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cahier.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7F911C41282D2115F120ECB3 /* CahierPlusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CahierPlusView.swift; sourceTree = "<group>"; };
 		7FFC7ECD6C54EF504D92D253 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		864DEDFF927474B19754A661 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		95D90E0B74A1EE647B2159D0 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
@@ -52,6 +61,7 @@
 		BFCC71F5AD609D10E5BDAAE7 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		E0828BC5DF932C2A07026980 /* Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conversation.swift; sourceTree = "<group>"; };
 		E54D13ADC93E375CF8705089 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
+		E84727E43417C0DE3C6F4DED /* VocabEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabEntry.swift; sourceTree = "<group>"; };
 		EF7DF90B58958E3BC479AEFD /* Debouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Debouncer.swift; sourceTree = "<group>"; };
 		FF46119B14910D286282D5A1 /* ChatInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInputView.swift; sourceTree = "<group>"; };
 		FF882ECD940E9A386B2FB2F1 /* TranslationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationService.swift; sourceTree = "<group>"; };
@@ -81,6 +91,7 @@
 		114C894A13EAB23E55A9B5F3 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				54E82399AEE38350D0F933BB /* CahierPlus */,
 				7C9FBFF0139BEE9CE9C64430 /* Chat */,
 				3C2C15B32A1FC33B329AE4D7 /* Editor */,
 				3F0588B73395E6A395793349 /* Settings */,
@@ -95,6 +106,7 @@
 				E0828BC5DF932C2A07026980 /* Conversation.swift */,
 				A77DF9151D4E23426D55BA2D /* Message.swift */,
 				417D6A53545A5108ECF67AAB /* Note.swift */,
+				E84727E43417C0DE3C6F4DED /* VocabEntry.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -124,6 +136,16 @@
 				A179E966339A96EB776D185C /* ContentView.swift */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		54E82399AEE38350D0F933BB /* CahierPlus */ = {
+			isa = PBXGroup;
+			children = (
+				7F911C41282D2115F120ECB3 /* CahierPlusView.swift */,
+				1FBDAED4819A917FAB3DA058 /* ReviewView.swift */,
+				06B61817194B0E4F8606AFC1 /* VocabTableView.swift */,
+			);
+			path = CahierPlus;
 			sourceTree = "<group>";
 		};
 		6039A20ED80799DACCCF78AD /* Sidebar */ = {
@@ -182,6 +204,7 @@
 				969BA7AB136BAEA2D92B4AC8 /* NoteStore.swift */,
 				FF882ECD940E9A386B2FB2F1 /* TranslationService.swift */,
 				E54D13ADC93E375CF8705089 /* TTSService.swift */,
+				5AFEFF15C3C63CF4B557220A /* VocabStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -273,6 +296,7 @@
 				C0D82068AEE544549AAE3DCF /* AIService.swift in Sources */,
 				9370B9F66DF976C61A763F47 /* AppState.swift in Sources */,
 				EE9F117C064C3AE9B7EBE681 /* CahierApp.swift in Sources */,
+				DA56571CBEE5F77159FA1113 /* CahierPlusView.swift in Sources */,
 				D08C25434BC509A8ADB6748B /* ChatInputView.swift in Sources */,
 				E59D704B98F1C0034018CC0F /* ChatMessageView.swift in Sources */,
 				AF412926EA3E19A82B4BF4F1 /* ChatPanelView.swift in Sources */,
@@ -286,10 +310,14 @@
 				FD97588CB9BB05FDB8E405A7 /* Message.swift in Sources */,
 				76C8D93B9743E00EFD6E86C4 /* Note.swift in Sources */,
 				1867533C9E11C2A9E13454F4 /* NoteStore.swift in Sources */,
+				388273E90D15F58B7E157EA7 /* ReviewView.swift in Sources */,
 				02FD7BFFF6F8B4253963D751 /* SettingsView.swift in Sources */,
 				1A0D02AAC34D1B382884367C /* SidebarView.swift in Sources */,
 				47AAF3294CBA681E2D8B52A2 /* TTSService.swift in Sources */,
 				7662BFEAB1CE3A0FA51265D0 /* TranslationService.swift in Sources */,
+				61F7E8B5943226B9D3C90600 /* VocabEntry.swift in Sources */,
+				E3086962EBD11CC44F35B564 /* VocabStore.swift in Sources */,
+				4883FA15CC3B9685F4635F49 /* VocabTableView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

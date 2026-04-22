@@ -67,9 +67,11 @@ final class NoteStore {
             }
         }
 
+        let deletedFilename = note.fileURL.lastPathComponent
         appState.notes.removeAll { $0 == note }
 
         try? FileManager.default.removeItem(at: note.fileURL)
+        appState.vocabStore.clearSource(deletedFilename)
     }
 
     func renameNote(_ note: Note, newTitle: String, appState: AppState) -> Bool {
@@ -84,11 +86,13 @@ final class NoteStore {
         guard newURL != note.fileURL else { return true }
         guard !FileManager.default.fileExists(atPath: newURL.path) else { return false }
         
+        let oldFilename = note.fileURL.lastPathComponent
         do {
             try FileManager.default.moveItem(at: note.fileURL, to: newURL)
             note.fileURL = newURL
             note.title = newTitle
             // No need to reload, handleDirectoryChange and Note reference handles the UI
+            appState.vocabStore.renameSource(from: oldFilename, to: newURL.lastPathComponent)
             return true
         } catch {
             print("[NoteStore] renameNote failed: \(error)")

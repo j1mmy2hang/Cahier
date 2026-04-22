@@ -142,6 +142,16 @@ struct NotePageView: NSViewRepresentable {
         }
 
         coordinator.handleViewportChange(size: scrollView.contentSize)
+
+        // If Cahier Plus set a highlight target for this note, locate and
+        // flash-highlight it after layout settles.
+        if let target = appState.highlightTargetText, !target.isEmpty {
+            let appStateRef = appState
+            DispatchQueue.main.async {
+                coordinator.performHighlight(target: target)
+                appStateRef.highlightTargetText = nil
+            }
+        }
     }
 
     func makeCoordinator() -> NotePageCoordinator {
@@ -684,6 +694,9 @@ final class NotePageCoordinator: NSObject, NSTextViewDelegate, NSTextFieldDelega
 
     private func startLearnConversation(with text: String) {
         let appState = parent.appState
+
+        recordVocabEntry(for: text, appState: appState)
+
         appState.conversation.reset(with: text)
         appState.conversation.appendUserMessage(text)
 
@@ -715,6 +728,59 @@ final class NotePageCoordinator: NSObject, NSTextViewDelegate, NSTextFieldDelega
             await MainActor.run {
                 appState.conversation.isStreaming = false
             }
+        }
+    }
+
+    /// Log the learned text in the vocab store and kick off a silent AI
+    /// translation request if the entry is new.
+    private func recordVocabEntry(for text: String, appState: AppState) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let sourceFilename = appState.selectedNote?.fileURL.lastPathComponent
+        let entry = appState.vocabStore.addOrGet(text: trimmed, sourceNoteFilename: sourceFilename)
+
+        guard entry.translation.isEmpty,
+              let aiService = appState.aiService else { return }
+
+        Task { @MainActor in
+            do {
+                let translation = try await aiService.translate(text: trimmed)
+                // Guard against the user having edited the field manually in
+                // the meantime.
+                if entry.translation.isEmpty {
+                    appState.vocabStore.setTranslation(translation, for: entry)
+                }
+            } catch {
+                // Leave translation blank; user can fill it in manually.
+            }
+        }
+    }
+
+    // MARK: - Highlight target (driven by Cahier Plus)
+
+    /// Flash-highlight the given substring in the current note body. Called
+    /// from `updateNSView` when `AppState.highlightTargetText` changes.
+    func performHighlight(target: String) {
+        guard let textView else { return }
+        let nsString = textView.string as NSString
+        let range = nsString.range(of: target)
+        guard range.location != NSNotFound, range.length > 0 else { return }
+
+        textView.scrollRangeToVisible(range)
+        textView.setSelectedRange(range)
+
+        guard let textStorage = textView.textStorage else { return }
+        textStorage.beginEditing()
+        textStorage.addAttribute(
+            .backgroundColor,
+            value: NSColor.systemYellow.withAlphaComponent(0.55),
+            range: range
+        )
+        textStorage.endEditing()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
+            self?.applyHighlighting()
         }
     }
 

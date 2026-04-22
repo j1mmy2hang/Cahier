@@ -127,8 +127,7 @@ struct SettingsView: View {
         panel.message = "Select a folder for your French notes"
 
         if panel.runModal() == .OK, let url = panel.url {
-            appState.notebookFolderURL = url
-            appState.noteStore.setFolder(url, appState: appState)
+            appState.openFolder(url)
             folderPath = url.path(percentEncoded: false)
         }
     }
