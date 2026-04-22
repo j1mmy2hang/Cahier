@@ -1,8 +1,8 @@
 # Cahier 🇫🇷
 
-> A professional, AI-powered notebook designed specifically for French language learners.
+> An AI-powered notebook for French language learning.
 
-Cahier is a modern macOS application that combines a rich note-taking experience with advanced AI capabilities to accelerate your French language acquisition. Whether you're reading a text, writing your own notes, or reviewing vocabulary, Cahier provides the tools to make the process seamless and interactive.
+Cahier is an Obsidian-like notebook, in which you can add your own texts to learn. If offers the world's most inuitive and fast way to look up the meaning of a word, integration of an AI Chat sidebar, and notebook for reviewing and testing vocabulary. 
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
@@ -10,20 +10,20 @@ Cahier is a modern macOS application that combines a rich note-taking experience
 
 ## ✨ Features
 
-### 📝 Smart Note Editor
-A clean, focused environment for your French studies. Write, format, and organize your learning material with ease.
+### 📝 Note Editor
+Obsidian-like local markdown file editor. 
 
 ### 🤖 AI Sidebar
-Your personal language tutor is always just a sidebar away. Ask questions about grammar, request explanations for idiomatic expressions, or get suggestions on how to improve your writing.
+Your personal language tutor is always just a sidebar away. 
 
 ### 🔍 Hover Translation
-Encountered a word you don't know? Just hover over any word in your notes to get instant translations and contextual meanings.
+Hover over any word in your notes to get instant translations. 
 
 ### 🗣️ Select Speak / Learn
-Select any text to hear it pronounced with high-quality AI voices. Use the "Learn" feature to instantly analyze the selected text, breaking down verbs, tenses, and complex vocabulary.
+Select any text to hear it pronounced with high-quality AI voices. Use the "Learn" feature to instantly analyze the selected text in the AI Chat sidebar. 
 
 ### 🗂️ Cahier Plus: Note & Review
-The "Cahier Plus" system goes beyond simple notes. It intelligently tracks the vocabulary and phrases you encounter, allowing you to review them later through structured sessions designed to move knowledge from short-term to long-term memory.
+Cahier Plus tracks the vocabulary and phrases you encounter, allowing you to review them later in flashcards. 
 
 ## 🚀 Getting Started
 
@@ -71,4 +71,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-Built with ❤️ for French learners.
+App of [jimmyzhang.org](https://jimmyzhang.org)
