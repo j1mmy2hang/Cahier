@@ -2,7 +2,7 @@
 
 > An AI-powered notebook for French language learning.
 
-Cahier is an Obsidian-like notebook, in which you can add your own texts to learn. If offers the world's most inuitive and fast way to look up the meaning of a word, integration of an AI Chat sidebar, and notebook for reviewing and testing vocabulary. 
+Cahier is an Obsidian-like notebook for the texts you want to learn from. It offers fast in-place word lookup, an AI chat sidebar tutor, and a built-in vocabulary review system.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Swift](https://img.shields.io/badge/Swift-6.0-orange.svg)
@@ -11,26 +11,27 @@ Cahier is an Obsidian-like notebook, in which you can add your own texts to lear
 ## ✨ Features
 
 ### 📝 Note Editor
-Obsidian-like local markdown file editor. 
+An Obsidian-style local Markdown editor — your notes are plain `.md` files on disk.
 
 ### 🤖 AI Sidebar
-Your personal language tutor is always just a sidebar away. 
+A personal language tutor, always one sidebar away.
 
 ### 🔍 Hover Translation
-Hover over any word in your notes to get instant translations. 
+Hover any word to get an instant translation.
 
-### 🗣️ Select Speak / Learn
-Select any text to hear it pronounced with high-quality AI voices. Use the "Learn" feature to instantly analyze the selected text in the AI Chat sidebar. 
+### 🗣️ Select to Speak / Learn
+Select any text to hear it pronounced with high-quality AI voices, or hit **Learn** to have the AI break it down for you in the sidebar.
 
 ### 🗂️ Cahier Plus: Note & Review
-Cahier Plus tracks the vocabulary and phrases you encounter, allowing you to review them later in flashcards. 
+Cahier Plus tracks the vocabulary and phrases you encounter so you can review them later as flashcards.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - macOS 15.0 or later
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (to generate the project)
+- Xcode 16 or later
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) — install with `brew install xcodegen`
 
 ### Installation
 
@@ -45,30 +46,31 @@ Cahier Plus tracks the vocabulary and phrases you encounter, allowing you to rev
    xcodegen generate
    ```
 
-3. **Open the project:**
+3. **Open and run:**
    ```bash
    open Cahier.xcodeproj
    ```
+   Then hit **⌘R** in Xcode.
 
 ### Configuration
 
-Once the app is running, you can configure your API keys directly in the **Settings** (⌘,):
+Once the app is running, configure your API keys in **Settings** (⌘,):
 
-1. **OpenRouter API Key**: Required for the AI Tutor and learning features. Get your key at [openrouter.ai](https://openrouter.ai/keys).
-2. **ElevenLabs API Key**: Required for high-quality French Text-to-Speech. Falls back to system voices if not provided. Get your key at [elevenlabs.io](https://elevenlabs.io/speech-synthesis).
+1. **OpenRouter API Key** — required for the AI tutor and Learn feature. Get one at [openrouter.ai](https://openrouter.ai/keys).
+2. **ElevenLabs API Key** — required for high-quality French text-to-speech. Falls back to the system voice if not provided. Get one at [elevenlabs.io](https://elevenlabs.io/speech-synthesis).
 
 ## 🛠 Tech Stack
 
-- **Languge:** Swift 6.0
+- **Language:** Swift 6.0
 - **Framework:** SwiftUI
-- **AI:** OpenRouter (accessing various LLMs)
+- **AI:** OpenRouter (multi-model gateway)
 - **TTS:** ElevenLabs
-- **UI Components:** [MarkdownUI](https://github.com/gonzalezreal/swift-markdown-ui)
+- **Markdown rendering:** [swift-markdown-ui](https://github.com/gonzalezreal/swift-markdown-ui)
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-App of [jimmyzhang.org](https://jimmyzhang.org)
+An app by [jimmyzhang.org](https://jimmyzhang.org).
