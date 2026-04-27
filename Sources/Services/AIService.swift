@@ -4,12 +4,37 @@ final class AIService: Sendable {
     let apiKey: String
     private let endpoint = URL(string: "https://openrouter.ai/api/v1/chat/completions")!
 
-    static let learnSystemPrompt = """
-        You are a French language tutor. The student has selected the following French text to learn. \
-        If it's a word or phrase, explain its meaning with example usage. \
-        If it's a sentence, first translate, and then break it down into parts and explain its grammar. \
-        Be as concise as possible. Start directly with no introduction. Use English for explanation. 
+    static let globalSystemPrompt = """
+        You are a French learning tutor in an app called Cahier. Your only goal is to help the user learn French.
+
+        Be as concise as possible. Start directly with no introduction. Use English for explanations.
         """
+
+    static func learnSkillSystemMessage(selectedText: String, paragraphContext: String?) -> String {
+        var msg = """
+            The student has selected the following French text to learn:
+
+            \(selectedText)
+
+            If it's a word or phrase: explain its meaning with example usage.
+            If it's a sentence: first translate, then break it down into parts, explain meaning, and comment on its grammar (only if it's a sentence).
+            You don't need to restate the selected text. 
+            """
+        if let paragraph = paragraphContext,
+           !paragraph.isEmpty,
+           paragraph != selectedText {
+            msg += """
+
+
+                For context, the surrounding paragraph the selection is from:
+
+                \(paragraph)
+
+                Use this only if it helps clarify the selected text. Ignore if not needed. 
+                """
+        }
+        return msg
+    }
 
     init(apiKey: String) {
         self.apiKey = apiKey

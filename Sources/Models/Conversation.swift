@@ -4,17 +4,20 @@ import Foundation
 final class Conversation {
     var messages: [Message] = []
     var contextText: String?
+    var paragraphContext: String?
     var isStreaming: Bool = false
 
-    func reset(with selectedText: String) {
+    func reset(with selectedText: String, paragraph: String? = nil) {
         messages = []
         contextText = selectedText
+        paragraphContext = paragraph
         isStreaming = false
     }
 
     func clear() {
         messages = []
         contextText = nil
+        paragraphContext = nil
         isStreaming = false
     }
 

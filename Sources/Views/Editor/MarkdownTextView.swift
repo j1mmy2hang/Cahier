@@ -771,12 +771,25 @@ final class NotePageCoordinator: NSObject, NSTextViewDelegate, NSTextFieldDelega
         selectionPanel = nil
     }
 
+    private func currentSelectionParagraph() -> String? {
+        guard let tv = textView else { return nil }
+        let ns = tv.string as NSString
+        let range = tv.selectedRange()
+        guard range.length > 0, range.location + range.length <= ns.length else { return nil }
+        let paragraphRange = ns.paragraphRange(for: range)
+        let paragraph = ns.substring(with: paragraphRange)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return paragraph.isEmpty ? nil : paragraph
+    }
+
     private func startLearnConversation(with text: String) {
         let appState = parent.appState
 
         recordVocabEntry(for: text, appState: appState)
 
-        appState.conversation.reset(with: text)
+        let paragraph = currentSelectionParagraph()
+
+        appState.conversation.reset(with: text, paragraph: paragraph)
         appState.conversation.appendUserMessage(text)
 
         guard let aiService = appState.aiService else {
@@ -788,7 +801,8 @@ final class NotePageCoordinator: NSObject, NSTextViewDelegate, NSTextFieldDelega
         appState.conversation.appendAssistantMessage()
 
         let messages: [(role: String, content: String)] = [
-            ("system", AIService.learnSystemPrompt),
+            ("system", AIService.globalSystemPrompt),
+            ("system", AIService.learnSkillSystemMessage(selectedText: text, paragraphContext: paragraph)),
             ("user", text),
         ]
 

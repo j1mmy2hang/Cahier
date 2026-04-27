@@ -75,11 +75,17 @@ struct ChatInputView: View {
         appState.conversation.appendAssistantMessage()
 
         var messages: [(role: String, content: String)] = [
-            ("system", AIService.learnSystemPrompt),
+            ("system", AIService.globalSystemPrompt),
         ]
 
         if let context = appState.conversation.contextText {
-            messages.append(("system", "The student is currently studying this French text: \"\(context)\""))
+            messages.append((
+                "system",
+                AIService.learnSkillSystemMessage(
+                    selectedText: context,
+                    paragraphContext: appState.conversation.paragraphContext
+                )
+            ))
         }
 
         for msg in appState.conversation.messages where msg.role != .system {
